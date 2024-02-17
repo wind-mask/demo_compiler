@@ -12,3 +12,4 @@ lalrpop = "0.20.0"
 lalrpop-util = { version = "0.20.0", features = ["lexer", "regex", "unicode"] }
 demo_isa = { path = "../demo_isa" }
 demo_vm = {path = "../demo_vm"}
+logos = "0.14.0"

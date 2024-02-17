@@ -8,11 +8,12 @@ pub enum Err {
     F64ParseError,
 }
 
+#[derive(Debug, Clone)]
 pub enum PrimitiveExpr {
     Usize(UsizeExpr),
     F64(F64Expr),
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum UsizeExpr {
     Usize(usize),
     Op2(Box<UsizeExpr>, Op2, Box<UsizeExpr>),
@@ -51,7 +52,7 @@ impl UsizeExpr {
         None
     }
 }
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum F64Expr {
     F64(f64),
     Op2(Box<F64Expr>, Op2, Box<F64Expr>),

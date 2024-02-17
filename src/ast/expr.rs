@@ -5,7 +5,7 @@ use super::types;
 pub mod const_expr;
 pub mod identity_expr;
 
-#[derive(Debug)]
+#[derive(Debug, Clone)]
 pub enum Op2 {
     Add,
     Sub,
@@ -17,10 +17,13 @@ pub enum Op2 {
     // Shl,
     // Shr,
 }
+#[derive(Debug, Clone)]
 pub struct Expr {
     pub type_: types::Type,
     pub expr: ExprEnum,
 }
+
+#[derive(Debug, Clone)]
 pub enum ExprEnum {
     ConstExpr(ConstExpr),
 }

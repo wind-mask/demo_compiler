@@ -8,8 +8,10 @@ use crate::ast::{
 trait DeclarationProcess {
     fn declaration_process(&self) -> Result<Vec<Inst>, Err>; //TODO: declaration_process and its SymbolTable
 }
+#[derive(Debug, Clone)]
 pub enum Err {}
 
+#[derive(Debug, Clone)]
 pub struct Declaration {
     pub type_: types::Type,
     pub name: String,
@@ -23,6 +25,6 @@ impl Declaration {
             },
             types::Type::Array(t, usize) => {}
         };
-        todo!()
+        todo!() //TODO: declaration_compile
     }
 }
