@@ -1,4 +1,5 @@
 #![allow(unused, unnameable_test_items)]
-mod ast;
+pub mod ast;
+pub mod namespace;
 mod test;
-fn main() {}
+pub fn main() {}
