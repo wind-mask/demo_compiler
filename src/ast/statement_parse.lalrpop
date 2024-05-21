@@ -1,0 +1,235 @@
+use crate::ast::statement;
+use crate::lexer::LexingError;
+use crate::lexer::Token;
+use crate::ast::types;
+use crate::ast::expr;
+
+grammar<'input>(input: &'input str);
+
+extern{
+    type Error = LexingError;
+    type Location = usize;
+
+    enum Token<'input> {
+        "extern" => Token::Extern,
+        "use" => Token::Use,
+        "for" => Token::For,
+        "in" => Token::In,
+        "fn" => Token::Fn,
+        "->" => Token::Arrow,
+        // "_" => Token::Underscore,
+        "let" => Token::Let,
+        "mut" => Token::Mut,
+        "if" => Token::If,
+        "else" => Token::Else,
+        "while" => Token::While,
+        "return" => Token::Return,
+        "true" => Token::True,
+        "false" => Token::False,
+        // "i64" => Token::I64,
+        "const" => Token::Const,
+        "identifier" => Token::Identifier(<&'input str>),
+        "stringLiteral" => Token::StringLiteral(<String>),
+        "number" => Token::Number(<i64>),
+        "nan" => Token::Nan,
+        "inf" => Token::Inf,
+        "float" => Token::Float(<f64>),
+        "==" => Token::Eq,
+        "!=" => Token::Ne,
+        "<" => Token::Lt,
+        "<=" => Token::Le,
+        ">" => Token::Gt,
+        ">=" => Token::Ge,
+        "." => Token::Dot,
+        "," => Token::Comma,
+        ":" => Token::Colon,
+        ";" => Token::Semicolon,
+        "{" => Token::LBrace,
+        "}" => Token::RBrace,
+        "[" => Token::LBracket,
+        "]" => Token::RBracket,
+        "=" => Token::Assign,
+        "+" => Token::Plus,
+        "-" => Token::Minus,
+        "*" => Token::Star,
+        "/" => Token::Slash,
+        "%" => Token::Percent,
+        "&&" => Token::And,
+        "||" => Token::Or,
+        "!" => Token::Not,
+        "^" => Token::Xor,
+        "&" => Token::BitAnd,
+        "|" => Token::BitOr,
+        "+=" => Token::PlusAssign,
+        "-=" => Token::MinusAssign,
+        "*=" => Token::StarAssign,
+        "/=" => Token::SlashAssign,
+        "%=" => Token::PercentAssign,
+        "^=" => Token::XorAssign,
+        "&=" => Token::BitAndAssign,
+        "|=" => Token::BitOrAssign,
+        "&&=" => Token::AndAssign,
+        "||=" => Token::OrAssign,
+        "(" => Token::LParen,
+        ")" => Token::RParen,
+    }
+}
+pub StatementChunk : statement::StatementChunk<'input> = {
+    <c:Statement+> => statement::StatementChunk{
+        statements: c
+    }
+}
+//TODO:Add the rest of the statement
+Statement : statement::StatementEnum<'input> = {
+    <d:DeclarationStaement> => statement::StatementEnum::Declaration(d),
+
+    // <a:AssignmentStatement> => statement::StatementEnum::Assignment(a),
+
+    <f:FunctionDeclarationStatement> => statement::StatementEnum::FunctionDeclaration(f),
+    
+    <e:ExprCall> => statement::StatementEnum::ExprCall(e),
+
+    <s : StatementChunkIn> => statement::StatementEnum::StatementChunk(s),
+    <l:LoopStatement> => statement::StatementEnum::LoopStatement(l),
+    
+}
+StatementChunkIn : statement::StatementChunk<'input> = {
+   "{" <mut c:Statement*> <e:ExprStatement?>"}" => match e{
+        None =>{
+            statement::StatementChunk{
+        statements: c
+    }
+        },
+        Some(e)=>{
+            c.push(e);
+            statement::StatementChunk{
+        statements: c
+            }
+        }
+    }
+} 
+ExprCall : expr::ExprEnum<'input> = {
+    <e:ExprEnum> ";" => e,
+}
+
+// AssignmentStatement: statement::assignment::Assignment<'input> = {
+//     <name:"identifier"> "=" <exprenum:ExprEnum> ";" => statement::assignment::Assignment{
+//         name: name,
+//         expr: exprenum
+//     }
+// }
+
+DeclarationStaement: statement::declaration::Declaration<'input> ={
+    "let" <name:"identifier"> "=" <exprenum:ExprEnum> ";" => statement::declaration::Declaration{
+        const_: false,
+        mut_: false,
+        type_: types::Type::Base(types::base::Type::I64),
+        name: name,
+        expr: exprenum
+    }
+}
+
+
+LoopStatement: statement::loop_statement::LoopStatementEnum<'input> = {
+    "for" <name:"identifier"> "in" <array:"identifier"> <body:StatementChunkIn> ";"=> statement::loop_statement::LoopStatementEnum::LoopInArray(statement::loop_statement::LoopInArrayStatement{
+        i: name,
+        array: array,
+        body: body
+    }),
+    "while" "("<cond:ExprEnum>")" <body:StatementChunkIn> ";" => statement::loop_statement::LoopStatementEnum::LoopWhile(statement::loop_statement::LoopWhileStatement{
+        condition: cond,
+        body: body
+    })
+}
+
+FunctionDeclarationStatement: statement::declaration::FunctionDeclaration<'input> = {
+    "fn" <name:"identifier"> "(" <args:FunctionArgs> ")" "->" <return_type:Type>  <body:StatementChunkIn>  => statement::declaration::FunctionDeclaration{
+        name: name,
+        args: args,
+        ret: return_type,
+        body: body
+    },
+    "fn" <name:"identifier"> "(" <args:FunctionArgs> ")" <body:StatementChunkIn>  => statement::declaration::FunctionDeclaration{
+        name: name,
+        args: args,
+        ret: types::Type::Void,
+        body: body
+    }
+}
+Type: types::Type<'input> = {
+    // "i64" => types::Type::Base(types::base::Type::I64),
+    <i:"identifier"> => types::Type::Identifier(i)
+}
+FunctionArgs: Vec<(&'input str,types::Type<'input>)> = {
+    <x:(<"identifier"> ":" <Type>)?> <mut v:("," <"identifier"> ":" <Type>)*> => match x{
+        Some((i,t)) => {
+            let mut v = v;
+            v.push((i,t));
+            v
+        },
+        None => vec![]
+    }
+}
+ExprStatement : statement::StatementEnum<'input> = {
+    <e:ExprEnum>  => statement::StatementEnum::ExprStatement(e)
+}
+
+ExprEnum: expr::ExprEnum<'input> = {
+    #[precedence(level="0")]
+    Term,
+    <f:ExprEnum>"(" <args:Args> ")" => expr::ExprEnum::FunctionCall(Box::new(f),args),
+    #[precedence(level="1")]
+    "-"<e:ExprEnum> => expr::ExprEnum::Op1(expr::Op1::Neg,Box::new(e)),
+    "!" <e:ExprEnum> => expr::ExprEnum::Op1(expr::Op1::Not,Box::new(e)),
+    #[precedence(level="2")] #[assoc(side="left")]
+    <l:ExprEnum> "&&" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::And,Box::new(r)),
+    <l:ExprEnum> "||" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Or,Box::new(r)),
+    <l:ExprEnum> "^" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Xor,Box::new(r)),
+    <l:ExprEnum> "&" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::BitAnd,Box::new(r)),
+    <l:ExprEnum> "|" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::BitOr,Box::new(r)),
+    <l:ExprEnum> "%" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Mod,Box::new(r)),
+    <l:ExprEnum> "*" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Mul,Box::new(r)),
+    <l:ExprEnum> "/" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Div,Box::new(r)),
+    #[precedence(level="3")] #[assoc(side="left")]
+    <l:ExprEnum> "+" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Add,Box::new(r)),
+    <l:ExprEnum> "-" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Sub,Box::new(r)),
+    #[precedence(level="4")] #[assoc(side="left")]
+    <l:ExprEnum> "&=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::BitAndAssign,Box::new(r)),
+    <l:ExprEnum> "|=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::BitOrAssign,Box::new(r)),
+    <l:ExprEnum> "^=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::XorAssign,Box::new(r)),
+    <l:ExprEnum> "&&=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::AndAssign,Box::new(r)),
+    <l:ExprEnum> "||=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::OrAssign,Box::new(r)),
+    <l:ExprEnum> "*=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::MulAssign,Box::new(r)),
+    <l:ExprEnum> "/=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::DivAssign,Box::new(r)),
+    <l:ExprEnum> "%=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::ModAssign,Box::new(r)),
+    #[precedence(level="5")] #[assoc(side="left")]
+    <l:ExprEnum> "+=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::AddAssign,Box::new(r)),
+    <l:ExprEnum> "-=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::SubAssign,Box::new(r)),
+    <l:ExprEnum> "=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Assign,Box::new(r)),
+
+    <l:ExprEnum> "==" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Eq,Box::new(r)),
+    <l:ExprEnum> "!=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Ne,Box::new(r)),
+    <l:ExprEnum> "<" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Lt,Box::new(r)),
+    <l:ExprEnum> "<=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Le,Box::new(r)),
+    <l:ExprEnum> ">" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Gt,Box::new(r)),
+    <l:ExprEnum> ">=" <r:ExprEnum> => expr::ExprEnum::Op2(Box::new(l),expr::Op2::Ge,Box::new(r)),
+}
+Term: expr::ExprEnum<'input> = {
+    <n:"number"> => expr::ExprEnum::Value(expr::value::Value::Number(n)),
+    "true" => expr::ExprEnum::Value(expr::value::Value::Bool(true)),
+    "false" => expr::ExprEnum::Value(expr::value::Value::Bool(false)),
+    <s:"stringLiteral"> => expr::ExprEnum::Value(expr::value::Value::StringLiteral(s)),
+    <i:"identifier"> => expr::ExprEnum::Identifier(i),
+    
+    "(" <e:ExprEnum> ")" => e,
+}
+Args: Vec<expr::ExprEnum<'input>> = {
+    <x:ExprEnum?> <mut v:("," <ExprEnum>)*> => match x{
+        Some(e) => {
+            let mut v = v;
+            v.push(e);
+            v
+        },
+        None => vec![]
+    }
+}

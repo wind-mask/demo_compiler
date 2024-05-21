@@ -1,13 +1,5 @@
 #![allow(unused, unnameable_test_items)]
-pub mod ast;
-pub mod lexer;
-pub mod name_space;
-pub mod pre_processor;
+// pub mod ast;
 mod test;
+use demo_compiler::ast::statement::{StatementChunk, StatementEnum};
 pub fn main() {}
-use crate::ast::statement::{StatementChunk, StatementEnum, StatementError};
-fn x() {
-    Box::new(StatementEnum::StatementChunk(StatementChunk {
-        statements: vec![],
-    }));
-}

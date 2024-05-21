@@ -28,7 +28,4 @@ mod test {
 }
 use std::str::FromStr;
 
-use crate::ast::expr::const_expr::primitive::{Err, UsizeExpr};
-use crate::ast::expr::Op2;
-use crate::ast::types::primitive::Type;
 use lalrpop_util::ParseError;
