@@ -9,4 +9,5 @@ pub enum Value {
     Number(i64),
     StringLiteral(String),
     Bool(bool),
+    Never,
 }

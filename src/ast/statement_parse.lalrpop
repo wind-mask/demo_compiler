@@ -76,7 +76,8 @@ extern{
 }
 pub StatementChunk : statement::StatementChunk<'input> = {
     <c:Statement+> => statement::StatementChunk{
-        statements: c
+        statements: c,
+        type_: types::Type::Tuple(None)
     }
 }
 //TODO:Add the rest of the statement
@@ -87,30 +88,29 @@ Statement : statement::StatementEnum<'input> = {
 
     <f:FunctionDeclarationStatement> => statement::StatementEnum::FunctionDeclaration(f),
     
-    <e:ExprCall> => statement::StatementEnum::ExprCall(e),
-
-    <s : StatementChunkIn> => statement::StatementEnum::StatementChunk(s),
+    <e:ExprStatement> => statement::StatementEnum::ExprStatement(e),
+    // <s:StatementChunkIn> => statement::StatementEnum::StatementChunk(s),
     <l:LoopStatement> => statement::StatementEnum::LoopStatement(l),
     
 }
-StatementChunkIn : statement::StatementChunk<'input> = {
-   "{" <mut c:Statement*> <e:ExprStatement?>"}" => match e{
+StatementChunkIn :  statement::StatementChunk<'input> = {
+   "{" <mut c:Statement*> <e:ExprRet?>"}" => match e{
         None =>{
             statement::StatementChunk{
-        statements: c
+        statements: c,
+        type_: types::Type::Tuple(None)
     }
         },
         Some(e)=>{
-            c.push(e);
+            c.push(statement::StatementEnum::ExprStatement(e));
             statement::StatementChunk{
-        statements: c
+        statements: c,
+        type_: types::Type::Unknown
             }
         }
     }
 } 
-ExprCall : expr::ExprEnum<'input> = {
-    <e:ExprEnum> ";" => e,
-}
+
 
 // AssignmentStatement: statement::assignment::Assignment<'input> = {
 //     <name:"identifier"> "=" <exprenum:ExprEnum> ";" => statement::assignment::Assignment{
@@ -123,7 +123,7 @@ DeclarationStaement: statement::declaration::Declaration<'input> ={
     "let" <name:"identifier"> "=" <exprenum:ExprEnum> ";" => statement::declaration::Declaration{
         const_: false,
         mut_: false,
-        type_: types::Type::Base(types::base::Type::I64),
+        type_: types::Type::Unknown,
         name: name,
         expr: exprenum
     }
@@ -152,7 +152,7 @@ FunctionDeclarationStatement: statement::declaration::FunctionDeclaration<'input
     "fn" <name:"identifier"> "(" <args:FunctionArgs> ")" <body:StatementChunkIn>  => statement::declaration::FunctionDeclaration{
         name: name,
         args: args,
-        ret: types::Type::Void,
+        ret: types::Type::Unknown,
         body: body
     }
 }
@@ -161,7 +161,7 @@ Type: types::Type<'input> = {
     <i:"identifier"> => types::Type::Identifier(i)
 }
 FunctionArgs: Vec<(&'input str,types::Type<'input>)> = {
-    <x:(<"identifier"> ":" <Type>)?> <mut v:("," <"identifier"> ":" <Type>)*> => match x{
+    <x:(<"identifier"> ":" <Type>)?> <v:("," <"identifier"> ":" <Type>)*> => match x{
         Some((i,t)) => {
             let mut v = v;
             v.push((i,t));
@@ -170,13 +170,20 @@ FunctionArgs: Vec<(&'input str,types::Type<'input>)> = {
         None => vec![]
     }
 }
-ExprStatement : statement::StatementEnum<'input> = {
-    <e:ExprEnum>  => statement::StatementEnum::ExprStatement(e)
+ExprRet: expr::ExprEnum<'input> = {
+    <e:ExprEnum> => e
 }
-
+ExprStatement : expr::ExprEnum<'input> = {
+    <e:ExprEnum> ";" => e
+}
+// ExprCall : expr::ExprEnum<'input> = {
+//     // <e:ExprEnum> ";" => e,
+//     // <e:ExprEnum> => e
+// }
 ExprEnum: expr::ExprEnum<'input> = {
     #[precedence(level="0")]
     Term,
+    <s:StatementChunkIn> => expr::ExprEnum::StatementChunk(s),
     <f:ExprEnum>"(" <args:Args> ")" => expr::ExprEnum::FunctionCall(Box::new(f),args),
     #[precedence(level="1")]
     "-"<e:ExprEnum> => expr::ExprEnum::Op1(expr::Op1::Neg,Box::new(e)),
@@ -224,7 +231,7 @@ Term: expr::ExprEnum<'input> = {
     "(" <e:ExprEnum> ")" => e,
 }
 Args: Vec<expr::ExprEnum<'input>> = {
-    <x:ExprEnum?> <mut v:("," <ExprEnum>)*> => match x{
+    <x:ExprEnum?> <v:("," <ExprEnum>)*> => match x{
         Some(e) => {
             let mut v = v;
             v.push(e);

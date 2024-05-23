@@ -1,4 +1,4 @@
-use crate::ast::expr::{ExprEnum};
+use crate::ast::expr::ExprEnum;
 
 use super::StatementChunk;
 

@@ -9,12 +9,14 @@ pub enum Err {}
 /// - `Primitive`：基本类型。
 /// - `Base`：基本类型。
 /// - `Array`：数组类型。
-/// - `Void`：空类型。
+/// - `Tuple`：元组类型，空元组表示 `()`视为Void。
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Type<'input> {
+    Unknown,
     Identifier(&'input str),
     Primitive(primitive::Type),
     Base(base::Type),
     Array(Box<Type<'input>>, usize),
-    Void,
+    Tuple(Option<Vec<Type<'input>>>),
+    Never,
 }

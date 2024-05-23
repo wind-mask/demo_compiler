@@ -89,6 +89,7 @@ pub struct Expr<'input> {
 /// - `Op2`：二元运算表达式。
 /// - `Value`：值。
 /// - `FunctionCall`：函数调用。
+/// - `StatementChunk`：代码块。
 #[derive(Debug, Clone)]
 pub enum ExprEnum<'input> {
     Identifier(&'input str),
@@ -96,4 +97,5 @@ pub enum ExprEnum<'input> {
     Op2(Box<ExprEnum<'input>>, Op2, Box<ExprEnum<'input>>),
     Value(value::Value),
     FunctionCall(Box<ExprEnum<'input>>, Vec<ExprEnum<'input>>),
+    StatementChunk(super::statement::StatementChunk<'input>),
 }

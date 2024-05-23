@@ -5,9 +5,9 @@ use lalrpop_util::lalrpop_mod;
 lalrpop_mod!(pub statement_parse,"/ast/statement_parse.rs"); 
 pub fn compile_2_ast(input: &str) -> crate::ast::statement::StatementChunk {
     use crate::{ast::statement, lexer::Lexer_};
-    let le = Lexer_::new(&input);
+    let le = Lexer_::new(input);
     let parser = statement_parse::StatementChunkParser::new();
-    let ast: statement::StatementChunk = parser.parse(&input, le).unwrap();
+    let ast: statement::StatementChunk = parser.parse(input, le).unwrap();
     ast
 }
 #[cfg(test)]
